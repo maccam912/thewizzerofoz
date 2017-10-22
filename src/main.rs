@@ -7,6 +7,7 @@ use ggez::graphics;
 use ggez::event::*;
 use std::env;
 use std::path;
+use std::time;
 
 const SPEED: f32 = 8.0;
 
@@ -31,12 +32,16 @@ struct MainState {
     hydrants: graphics::spritebatch::SpriteBatch,
     roads: graphics::spritebatch::SpriteBatch,
     grass: graphics::spritebatch::SpriteBatch,
+    twoo: graphics::spritebatch::SpriteBatch,
     dog: Dog,
     font: graphics::Font,
     frames: usize,
     offset: f32,
     points: isize,
     hydrant_pos: Vec<f32>,
+    last_start: time::Duration,
+    state: &'static str,
+    last_score: isize,
 }
 
 impl Dog {
@@ -83,17 +88,23 @@ impl MainState {
         let grass = graphics::Image::new(ctx, "/grass.png")?;
         let grassbatch = graphics::spritebatch::SpriteBatch::new(grass);
         let font = graphics::Font::new(ctx, "/DejaVuSerif.ttf", 16)?;
+        let twoo = graphics::Image::new(ctx, "/twoo.png")?;
+        let twoo_sb = graphics::spritebatch::SpriteBatch::new(twoo);
 
         let s = MainState {
             font: font,
             hydrants: hydrantbatch,
             roads: roadbatch,
             grass: grassbatch,
+            twoo: twoo_sb,
             dog: Dog::new(&mut ctx)?,
             frames: 0,
             offset: 0.0,
             points: 0,
             hydrant_pos: Vec::new(),
+            last_start: time::Duration::from_secs(0),
+            state: "menu",
+            last_score: 0,
         };
         Ok(s)
     }
@@ -104,6 +115,12 @@ impl event::EventHandler for MainState {
 
     fn key_down_event(&mut self, _ctx: &mut Context, keycode: Keycode, _keymod: Mod, _repeat: bool) {
         match keycode {
+            Keycode::Return => {
+                self.state = "play";
+                self.dog.xpos = -1.0*self.offset+200.0;
+                self.last_score = self.points;
+                self.points = 0;
+            }
             Keycode::Up => {
                 self.dog.up_pressed = true;
                 self.dog.state = "walking";
@@ -154,42 +171,52 @@ impl event::EventHandler for MainState {
     }
 
     fn update(&mut self, ctx: &mut Context) -> GameResult<()> {
-        self.offset -= SPEED*((ggez::timer::get_delta(ctx).subsec_nanos() as f32)/1e8); 
+        let mut elapsed_time =ggez::timer::duration_to_f64(ggez::timer::get_time_since_start(ctx)) as f32; 
+        elapsed_time -= (ggez::timer::duration_to_f64(self.last_start) as f32);
+        self.offset -= SPEED*(((ggez::timer::get_delta(ctx)).subsec_nanos() as f32)/1e8)+elapsed_time*(1.0/24.0); 
 
+        if self.state != "menu" {
+            if self.dog.space_pressed {
+                self.dog.up_pressed = false;
+                self.dog.down_pressed = false;
+                self.dog.left_pressed = false;
+                self.dog.right_pressed = false;
 
-        if self.dog.space_pressed {
-            self.dog.up_pressed = false;
-            self.dog.down_pressed = false;
-            self.dog.left_pressed = false;
-            self.dog.right_pressed = false;
+                if self.dog.ypos < 265.0 {
+                    for hydrant in self.hydrant_pos.clone().into_iter() {
+                        if self.dog.xpos > hydrant-30.0 && self.dog.xpos < hydrant+30.0 {
+                            self.points += 1;
+                        }
+                    } 
+                }
+            }
+            if self.dog.up_pressed {
+                if self.dog.ypos > 250.0 {
+                    self.dog.ypos -= 15.0*((ggez::timer::get_delta(ctx).subsec_nanos() as f32/1e8));
+                }
+            }
+            if self.dog.down_pressed {
+                if self.dog.ypos < 550.0 {
+                    self.dog.ypos += 15.0*((ggez::timer::get_delta(ctx).subsec_nanos() as f32/1e8));
+                }
+            }
+            if self.dog.left_pressed {
+                if self.dog.xpos > -1.0*self.offset+100.0 {
+                    self.dog.xpos -= 30.0*((ggez::timer::get_delta(ctx).subsec_nanos() as f32/1e8));
+                }
+            }
+            if self.dog.right_pressed {
+                if self.dog.xpos < -1.0*self.offset+600.0 {
+                    self.dog.xpos += 30.0*((ggez::timer::get_delta(ctx).subsec_nanos() as f32/1e8));
+                }
+            }
+        }
+        else {
+            self.last_start = ggez::timer::get_time_since_start(ctx);
+        }
 
-            if self.dog.xpos < 265.0 {
-                for hydrant in self.hydrant_pos.clone().into_iter() {
-                    if self.dog.xpos > hydrant-30.0 && self.dog.xpos < hydrant+30.0 {
-                        self.points += 1;
-                    }
-                } 
-            }
-        }
-        if self.dog.up_pressed {
-            if self.dog.ypos > 250.0 {
-                self.dog.ypos -= 15.0*((ggez::timer::get_delta(ctx).subsec_nanos() as f32/1e8));
-            }
-        }
-        if self.dog.down_pressed {
-            if self.dog.ypos < 550.0 {
-                self.dog.ypos += 15.0*((ggez::timer::get_delta(ctx).subsec_nanos() as f32/1e8));
-            }
-        }
-        if self.dog.left_pressed {
-            if self.dog.xpos > -1.0*self.offset+100.0 {
-                self.dog.xpos -= 30.0*((ggez::timer::get_delta(ctx).subsec_nanos() as f32/1e8));
-            }
-        }
-        if self.dog.right_pressed {
-            if self.dog.xpos < -1.0*self.offset+600.0 {
-                self.dog.xpos += 30.0*((ggez::timer::get_delta(ctx).subsec_nanos() as f32/1e8));
-            }
+        if self.dog.xpos < -1.0*self.offset+70.0 {
+            self.state = "menu";
         }
         Ok(())
     }
@@ -197,6 +224,7 @@ impl event::EventHandler for MainState {
     fn draw(&mut self, ctx: &mut Context) -> GameResult<()> {
         graphics::clear(ctx);
         // Drawables are drawn from their center.
+      
         { // grass
             let first_grass = -1.0*(self.offset-(self.offset%-640.0));
             for i in 0..5 {
@@ -266,51 +294,53 @@ impl event::EventHandler for MainState {
             graphics::draw_ex(ctx, &self.hydrants, param)?;
             self.hydrants.clear();
         }
-        { // dog
-            let p = graphics::DrawParam {
-                dest: graphics::Point2::new(self.dog.xpos, self.dog.ypos),
-                scale: graphics::Point2::new(4.0,4.0),
-                rotation: 0.0,
-                ..Default::default()
-            };
-            let param = graphics::DrawParam {
-                dest: graphics::Point2::new(self.offset,0.0),
-                scale: graphics::Point2::new(1.0,1.0),
-                rotation: 0.0,
-                offset: graphics::Point2::new(0.0,0.0),
-                ..Default::default()
-            };
-            if self.dog.state == "peeing" {
-                    self.dog.pee.add(p);
-                    graphics::draw_ex(ctx, &self.dog.pee, param)?;
-                    self.dog.pee.clear();
-            }
-            else if self.dog.state == "walking" {
-                if self.frames % 20 < 5 {
-                    self.dog.walk_1.add(p);
-                    graphics::draw_ex(ctx, &self.dog.walk_1, param)?;
-                    self.dog.walk_1.clear();
+        if self.state != "menu" {
+            { // dog
+                let p = graphics::DrawParam {
+                    dest: graphics::Point2::new(self.dog.xpos, self.dog.ypos),
+                    scale: graphics::Point2::new(4.0,4.0),
+                    rotation: 0.0,
+                    ..Default::default()
+                };
+                let param = graphics::DrawParam {
+                    dest: graphics::Point2::new(self.offset,0.0),
+                    scale: graphics::Point2::new(1.0,1.0),
+                    rotation: 0.0,
+                    offset: graphics::Point2::new(0.0,0.0),
+                    ..Default::default()
+                };
+                if self.dog.state == "peeing" {
+                        self.dog.pee.add(p);
+                        graphics::draw_ex(ctx, &self.dog.pee, param)?;
+                        self.dog.pee.clear();
                 }
-                else if self.frames % 20 < 10 {
+                else if self.dog.state == "walking" {
+                    if self.frames % 20 < 5 {
+                        self.dog.walk_1.add(p);
+                        graphics::draw_ex(ctx, &self.dog.walk_1, param)?;
+                        self.dog.walk_1.clear();
+                    }
+                    else if self.frames % 20 < 10 {
+                        self.dog.walk_2.add(p);
+                        graphics::draw_ex(ctx, &self.dog.walk_2, param)?;
+                        self.dog.walk_2.clear();
+                    }
+                    else if self.frames % 20 < 15 {
+                        self.dog.walk_3.add(p);
+                        graphics::draw_ex(ctx, &self.dog.walk_3, param)?;
+                        self.dog.walk_3.clear();
+                    }
+                    else { 
+                        self.dog.walk_4.add(p);
+                        graphics::draw_ex(ctx, &self.dog.walk_4, param)?;
+                        self.dog.walk_4.clear();
+                    }
+                }
+                else if self.dog.state == "stopped" {
                     self.dog.walk_2.add(p);
                     graphics::draw_ex(ctx, &self.dog.walk_2, param)?;
-                    self.dog.walk_2.clear();
+                    self.dog.walk_2.clear(); 
                 }
-                else if self.frames % 20 < 15 {
-                    self.dog.walk_3.add(p);
-                    graphics::draw_ex(ctx, &self.dog.walk_3, param)?;
-                    self.dog.walk_3.clear();
-                }
-                else { 
-                    self.dog.walk_4.add(p);
-                    graphics::draw_ex(ctx, &self.dog.walk_4, param)?;
-                    self.dog.walk_4.clear();
-                }
-            }
-            else if self.dog.state == "stopped" {
-                self.dog.walk_2.add(p);
-                graphics::draw_ex(ctx, &self.dog.walk_2, param)?;
-                self.dog.walk_2.clear(); 
             }
         }
 
@@ -318,6 +348,34 @@ impl event::EventHandler for MainState {
         let s = format!("Points: {}", self.points);
         let text = graphics::Text::new(ctx, s.as_str(), &self.font)?;
         graphics::draw(ctx, &text, dest_point, 0.0)?;
+
+
+        if self.state == "menu" {
+                let p = graphics::DrawParam {
+                    dest: graphics::Point2::new(400.0,300.0),
+                    scale: graphics::Point2::new(6.0,6.0),
+                    rotation: 0.0,
+                    ..Default::default()
+                };
+                self.twoo.add(p);
+            let param = graphics::DrawParam {
+                //dest: graphics::Point2::new(self.offset/2.0,0.0),
+                dest: graphics::Point2::new(0.0,0.0),
+                scale: graphics::Point2::new(1.0,1.0),
+                rotation: 0.0,
+                offset: graphics::Point2::new(0.0,0.0),
+                ..Default::default()
+            };
+
+            graphics::draw_ex(ctx, &self.twoo, param)?;
+            self.twoo.clear();
+            let dest_point = graphics::Point2::new(300.0,500.0);
+            let s = format!("Previous Score: {}", self.points);
+            let text = graphics::Text::new(ctx, s.as_str(), &self.font)?;
+            graphics::draw(ctx, &text, dest_point, 0.0)?;
+        }
+
+
         graphics::present(ctx);
         self.frames += 1;
         if (self.frames % 100) == 0 {
