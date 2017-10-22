@@ -1,0 +1,8 @@
+[package]
+authors = ["maccam912"]
+name = "benjiwalk"
+version = "0.1.0"
+[dependencies]
+ggez = { git = "https://github.com/ggez/ggez" }
+rand = "*"
+find_folder = "*"
