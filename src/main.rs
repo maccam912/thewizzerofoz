@@ -172,7 +172,7 @@ impl event::EventHandler for MainState {
 
     fn update(&mut self, ctx: &mut Context) -> GameResult<()> {
         let mut elapsed_time =ggez::timer::duration_to_f64(ggez::timer::get_time_since_start(ctx)) as f32; 
-        elapsed_time -= (ggez::timer::duration_to_f64(self.last_start) as f32);
+        elapsed_time -= ggez::timer::duration_to_f64(self.last_start) as f32;
         self.offset -= SPEED*(((ggez::timer::get_delta(ctx)).subsec_nanos() as f32)/1e8)+elapsed_time*(1.0/24.0); 
 
         if self.state != "menu" {
@@ -182,21 +182,21 @@ impl event::EventHandler for MainState {
                 self.dog.left_pressed = false;
                 self.dog.right_pressed = false;
 
-                if self.dog.ypos < 265.0 {
+                if self.dog.ypos < 200.0 {
                     for hydrant in self.hydrant_pos.clone().into_iter() {
-                        if self.dog.xpos > hydrant-30.0 && self.dog.xpos < hydrant+30.0 {
+                        if self.dog.xpos > hydrant-130.0 && self.dog.xpos < hydrant-70.0 {
                             self.points += 1;
                         }
                     } 
                 }
             }
             if self.dog.up_pressed {
-                if self.dog.ypos > 250.0 {
+                if self.dog.ypos > 170.0 {
                     self.dog.ypos -= 15.0*((ggez::timer::get_delta(ctx).subsec_nanos() as f32/1e8));
                 }
             }
             if self.dog.down_pressed {
-                if self.dog.ypos < 550.0 {
+                if self.dog.ypos < 470.0 {
                     self.dog.ypos += 15.0*((ggez::timer::get_delta(ctx).subsec_nanos() as f32/1e8));
                 }
             }
@@ -206,7 +206,7 @@ impl event::EventHandler for MainState {
                 }
             }
             if self.dog.right_pressed {
-                if self.dog.xpos < -1.0*self.offset+600.0 {
+                if self.dog.xpos < -1.0*self.offset+550.0 {
                     self.dog.xpos += 30.0*((ggez::timer::get_delta(ctx).subsec_nanos() as f32/1e8));
                 }
             }
@@ -215,7 +215,7 @@ impl event::EventHandler for MainState {
             self.last_start = ggez::timer::get_time_since_start(ctx);
         }
 
-        if self.dog.xpos < -1.0*self.offset+70.0 {
+        if self.dog.xpos < -1.0*self.offset-20.0 {
             self.state = "menu";
         }
         Ok(())
@@ -229,7 +229,7 @@ impl event::EventHandler for MainState {
             let first_grass = -1.0*(self.offset-(self.offset%-640.0));
             for i in 0..5 {
                 let p = graphics::DrawParam {
-                    dest: graphics::Point2::new(first_grass+(640.0*i as f32),200.0),
+                    dest: graphics::Point2::new(first_grass+(640.0*i as f32),100.0),
                     scale: graphics::Point2::new(1.0,1.0),
                     rotation: 0.0,
                     ..Default::default()
@@ -252,7 +252,7 @@ impl event::EventHandler for MainState {
             let first_road = -1.0*(self.offset-(self.offset%-501.0));
             for i in 0..5 {
                 let p = graphics::DrawParam {
-                    dest: graphics::Point2::new(first_road+(501.0*i as f32),440.0),
+                    dest: graphics::Point2::new(first_road+(501.0*i as f32),265.0),
                     scale: graphics::Point2::new(0.5,0.5),
                     rotation: 0.0,
                     ..Default::default()
@@ -276,7 +276,7 @@ impl event::EventHandler for MainState {
             for i in 0..100 {
                 self.hydrant_pos.push(first_hydrant+(512.0*i as f32));
                 let p = graphics::DrawParam {
-                    dest: graphics::Point2::new(first_hydrant+(512.0*i as f32),250.0),
+                    dest: graphics::Point2::new(first_hydrant+(512.0*i as f32),190.0),
                     scale: graphics::Point2::new(3.0,3.0),
                     rotation: 0.0,
                     ..Default::default()
@@ -344,7 +344,7 @@ impl event::EventHandler for MainState {
             }
         }
 
-        let dest_point = graphics::Point2::new(700.0,50.0);
+        let dest_point = graphics::Point2::new(650.0,20.0);
         let s = format!("Points: {}", self.points);
         let text = graphics::Text::new(ctx, s.as_str(), &self.font)?;
         graphics::draw(ctx, &text, dest_point, 0.0)?;
@@ -352,7 +352,7 @@ impl event::EventHandler for MainState {
 
         if self.state == "menu" {
                 let p = graphics::DrawParam {
-                    dest: graphics::Point2::new(400.0,300.0),
+                    dest: graphics::Point2::new(220.0,50.0),
                     scale: graphics::Point2::new(6.0,6.0),
                     rotation: 0.0,
                     ..Default::default()
