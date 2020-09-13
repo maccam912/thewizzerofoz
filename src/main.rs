@@ -1,6 +1,7 @@
 extern crate ggez;
 
-use ggez::conf;
+use graphics::DrawParam;
+use ggez::ContextBuilder;
 use ggez::event;
 use ggez::{Context, GameResult};
 use ggez::graphics;
@@ -34,7 +35,6 @@ struct MainState {
     grass: graphics::spritebatch::SpriteBatch,
     twoo: graphics::spritebatch::SpriteBatch,
     dog: Dog,
-    font: graphics::Font,
     frames: usize,
     offset: f32,
     points: isize,
@@ -87,12 +87,10 @@ impl MainState {
         let roadbatch = graphics::spritebatch::SpriteBatch::new(road);
         let grass = graphics::Image::new(ctx, "/grass.png")?;
         let grassbatch = graphics::spritebatch::SpriteBatch::new(grass);
-        let font = graphics::Font::new(ctx, "/DejaVuSerif.ttf", 16)?;
         let twoo = graphics::Image::new(ctx, "/twoo.png")?;
         let twoo_sb = graphics::spritebatch::SpriteBatch::new(twoo);
 
         let s = MainState {
-            font: font,
             hydrants: hydrantbatch,
             roads: roadbatch,
             grass: grassbatch,
@@ -113,56 +111,56 @@ impl MainState {
 
 impl event::EventHandler for MainState {
 
-    fn key_down_event(&mut self, _ctx: &mut Context, keycode: Keycode, _keymod: Mod, _repeat: bool) {
+    fn key_down_event(&mut self, _ctx: &mut Context, keycode: KeyCode,  _keymod: KeyMods, _repeat: bool) {
         match keycode {
-            Keycode::Return => {
+            KeyCode::Return => {
                 self.state = "play";
                 self.dog.xpos = -1.0*self.offset+200.0;
                 self.last_score = self.points;
                 self.points = 0;
             }
-            Keycode::Up => {
+            KeyCode::Up => {
                 self.dog.up_pressed = true;
                 self.dog.state = "walking";
             }
-            Keycode::Down => {
+            KeyCode::Down => {
                 self.dog.down_pressed = true;
                 self.dog.state = "walking";
             }
-            Keycode::Left => {
+            KeyCode::Left => {
                 self.dog.left_pressed = true;
                 self.dog.state = "walking";
             }
-            Keycode::Right => {
+            KeyCode::Right => {
                 self.dog.right_pressed = true;
                 self.dog.state = "walking";
             }
-            Keycode::Space => {
+            KeyCode::Space => {
                 self.dog.space_pressed = true;
                 self.dog.state = "peeing";
             }
             _ => (), // Do nothing
         }
     }
-    fn key_up_event(&mut self, _ctx: &mut Context, keycode: Keycode, _keymod: Mod, _repeat: bool) {
+    fn key_up_event(&mut self, _ctx: &mut Context, keycode: KeyCode, _keymod: KeyMods) {
         match keycode {
-            Keycode::Up => {
+            KeyCode::Up => {
                 self.dog.up_pressed = false;
                 self.dog.state = "stopped";
             }
-            Keycode::Down => {
+            KeyCode::Down => {
                 self.dog.down_pressed = false;
                 self.dog.state = "stopped";
             }
-            Keycode::Left => {
+            KeyCode::Left => {
                 self.dog.left_pressed = false;
                 self.dog.state = "stopped";
             }
-            Keycode::Right => {
+            KeyCode::Right => {
                 self.dog.right_pressed = false;
                 self.dog.state = "stopped";
             }
-            Keycode::Space => {
+            KeyCode::Space => {
                 self.dog.space_pressed = false;
                 self.dog.state = "stopped";
             }
@@ -171,9 +169,9 @@ impl event::EventHandler for MainState {
     }
 
     fn update(&mut self, ctx: &mut Context) -> GameResult<()> {
-        let mut elapsed_time =ggez::timer::duration_to_f64(ggez::timer::get_time_since_start(ctx)) as f32; 
+        let mut elapsed_time =ggez::timer::duration_to_f64(ggez::timer::time_since_start(ctx)) as f32; 
         elapsed_time -= ggez::timer::duration_to_f64(self.last_start) as f32;
-        self.offset -= SPEED*(((ggez::timer::get_delta(ctx)).subsec_nanos() as f32)/1e8)+elapsed_time*(1.0/24.0); 
+        self.offset -= SPEED*(((ggez::timer::delta(ctx)).subsec_nanos() as f32)/1e8)+elapsed_time*(1.0/24.0); 
 
         if self.state != "menu" {
             if self.dog.space_pressed {
@@ -192,27 +190,27 @@ impl event::EventHandler for MainState {
             }
             if self.dog.up_pressed {
                 if self.dog.ypos > 170.0 {
-                    self.dog.ypos -= 15.0*((ggez::timer::get_delta(ctx).subsec_nanos() as f32/1e8));
+                    self.dog.ypos -= 15.0*((ggez::timer::delta(ctx).subsec_nanos() as f32/1e8));
                 }
             }
             if self.dog.down_pressed {
                 if self.dog.ypos < 470.0 {
-                    self.dog.ypos += 15.0*((ggez::timer::get_delta(ctx).subsec_nanos() as f32/1e8));
+                    self.dog.ypos += 15.0*((ggez::timer::delta(ctx).subsec_nanos() as f32/1e8));
                 }
             }
             if self.dog.left_pressed {
                 if self.dog.xpos > -1.0*self.offset+100.0 {
-                    self.dog.xpos -= 30.0*((ggez::timer::get_delta(ctx).subsec_nanos() as f32/1e8));
+                    self.dog.xpos -= 30.0*((ggez::timer::delta(ctx).subsec_nanos() as f32/1e8));
                 }
             }
             if self.dog.right_pressed {
                 if self.dog.xpos < -1.0*self.offset+550.0 {
-                    self.dog.xpos += 30.0*((ggez::timer::get_delta(ctx).subsec_nanos() as f32/1e8));
+                    self.dog.xpos += 30.0*((ggez::timer::delta(ctx).subsec_nanos() as f32/1e8));
                 }
             }
         }
         else {
-            self.last_start = ggez::timer::get_time_since_start(ctx);
+            self.last_start = ggez::timer::time_since_start(ctx);
         }
 
         if self.dog.xpos < -1.0*self.offset-20.0 {
@@ -222,15 +220,15 @@ impl event::EventHandler for MainState {
     }
 
     fn draw(&mut self, ctx: &mut Context) -> GameResult<()> {
-        graphics::clear(ctx);
+        graphics::clear(ctx, graphics::BLACK);
         // Drawables are drawn from their center.
       
         { // grass
             let first_grass = -1.0*(self.offset-(self.offset%-640.0));
             for i in 0..5 {
                 let p = graphics::DrawParam {
-                    dest: graphics::Point2::new(first_grass+(640.0*i as f32),100.0),
-                    scale: graphics::Point2::new(1.0,1.0),
+                    dest: ggez::mint::Point2::from_slice(&[first_grass+(640.0*i as f32),100.0]),
+                    scale: ggez::mint::Vector2::from_slice(&[1.0,1.0]),
                     rotation: 0.0,
                     ..Default::default()
                 };
@@ -238,22 +236,22 @@ impl event::EventHandler for MainState {
             }
 
             let param = graphics::DrawParam {
-                //dest: graphics::Point2::new(self.offset/2.0,0.0),
-                dest: graphics::Point2::new(self.offset,0.0),
-                scale: graphics::Point2::new(1.0,1.0),
+                //dest: ggez::mint::Point2::from_slice(self.offset/2.0,0.0),
+                dest: ggez::mint::Point2::from_slice(&[self.offset,0.0]),
+                scale: ggez::mint::Vector2::from_slice(&[1.0,1.0]),
                 rotation: 0.0,
-                offset: graphics::Point2::new(0.0,0.0),
+                offset: ggez::mint::Point2::from_slice(&[0.0,0.0]),
                 ..Default::default()
             };
-            graphics::draw_ex(ctx, &self.grass, param)?;
+            graphics::draw(ctx, &self.grass, param)?;
             self.grass.clear();
         }
         { // road
             let first_road = -1.0*(self.offset-(self.offset%-501.0));
             for i in 0..5 {
                 let p = graphics::DrawParam {
-                    dest: graphics::Point2::new(first_road+(501.0*i as f32),265.0),
-                    scale: graphics::Point2::new(0.5,0.5),
+                    dest: ggez::mint::Point2::from_slice(&[first_road+(501.0*i as f32),265.0]),
+                    scale: ggez::mint::Vector2::from_slice(&[0.5,0.5]),
                     rotation: 0.0,
                     ..Default::default()
                 };
@@ -261,13 +259,13 @@ impl event::EventHandler for MainState {
             }
 
             let param = graphics::DrawParam {
-                dest: graphics::Point2::new(self.offset,0.0),
-                scale: graphics::Point2::new(1.0,1.0),
+                dest: ggez::mint::Point2::from_slice(&[self.offset,0.0]),
+                scale: ggez::mint::Vector2::from_slice(&[1.0,1.0]),
                 rotation: 0.0,
-                offset: graphics::Point2::new(0.0,0.0),
+                offset: ggez::mint::Point2::from_slice(&[0.0,0.0]),
                 ..Default::default()
             };
-            graphics::draw_ex(ctx, &self.roads, param)?;
+            graphics::draw(ctx, &self.roads, param)?;
             self.roads.clear();
         }
         { // hydrants
@@ -276,8 +274,8 @@ impl event::EventHandler for MainState {
             for i in 0..100 {
                 self.hydrant_pos.push(first_hydrant+(512.0*i as f32));
                 let p = graphics::DrawParam {
-                    dest: graphics::Point2::new(first_hydrant+(512.0*i as f32),190.0),
-                    scale: graphics::Point2::new(3.0,3.0),
+                    dest: ggez::mint::Point2::from_slice(&[first_hydrant+(512.0*i as f32),190.0]),
+                    scale: ggez::mint::Vector2::from_slice(&[3.0,3.0]),
                     rotation: 0.0,
                     ..Default::default()
                 };
@@ -285,104 +283,150 @@ impl event::EventHandler for MainState {
             }
 
             let param = graphics::DrawParam {
-                dest: graphics::Point2::new(self.offset,0.0),
-                scale: graphics::Point2::new(1.0,1.0),
+                dest: ggez::mint::Point2::from_slice(&[self.offset,0.0]),
+                scale: ggez::mint::Vector2::from_slice(&[1.0,1.0]),
                 rotation: 0.0,
-                offset: graphics::Point2::new(0.0,0.0),
+                offset: ggez::mint::Point2::from_slice(&[0.0,0.0]),
                 ..Default::default()
             };
-            graphics::draw_ex(ctx, &self.hydrants, param)?;
+            graphics::draw(ctx, &self.hydrants, param)?;
             self.hydrants.clear();
         }
         if self.state != "menu" {
             { // dog
                 let p = graphics::DrawParam {
-                    dest: graphics::Point2::new(self.dog.xpos, self.dog.ypos),
-                    scale: graphics::Point2::new(4.0,4.0),
+                    dest: ggez::mint::Point2::from_slice(&[self.dog.xpos, self.dog.ypos]),
+                    scale: ggez::mint::Vector2::from_slice(&[4.0,4.0]),
                     rotation: 0.0,
                     ..Default::default()
                 };
                 let param = graphics::DrawParam {
-                    dest: graphics::Point2::new(self.offset,0.0),
-                    scale: graphics::Point2::new(1.0,1.0),
+                    dest: ggez::mint::Point2::from_slice(&[self.offset,0.0]),
+                    scale: ggez::mint::Vector2::from_slice(&[1.0,1.0]),
                     rotation: 0.0,
-                    offset: graphics::Point2::new(0.0,0.0),
+                    offset: ggez::mint::Point2::from_slice(&[0.0,0.0]),
                     ..Default::default()
                 };
                 if self.dog.state == "peeing" {
                         self.dog.pee.add(p);
-                        graphics::draw_ex(ctx, &self.dog.pee, param)?;
+                        graphics::draw(ctx, &self.dog.pee, param)?;
                         self.dog.pee.clear();
                 }
                 else if self.dog.state == "walking" {
                     if self.frames % 20 < 5 {
                         self.dog.walk_1.add(p);
-                        graphics::draw_ex(ctx, &self.dog.walk_1, param)?;
+                        graphics::draw(ctx, &self.dog.walk_1, param)?;
                         self.dog.walk_1.clear();
                     }
                     else if self.frames % 20 < 10 {
                         self.dog.walk_2.add(p);
-                        graphics::draw_ex(ctx, &self.dog.walk_2, param)?;
+                        graphics::draw(ctx, &self.dog.walk_2, param)?;
                         self.dog.walk_2.clear();
                     }
                     else if self.frames % 20 < 15 {
                         self.dog.walk_3.add(p);
-                        graphics::draw_ex(ctx, &self.dog.walk_3, param)?;
+                        graphics::draw(ctx, &self.dog.walk_3, param)?;
                         self.dog.walk_3.clear();
                     }
                     else { 
                         self.dog.walk_4.add(p);
-                        graphics::draw_ex(ctx, &self.dog.walk_4, param)?;
+                        graphics::draw(ctx, &self.dog.walk_4, param)?;
                         self.dog.walk_4.clear();
                     }
                 }
                 else if self.dog.state == "stopped" {
                     self.dog.walk_2.add(p);
-                    graphics::draw_ex(ctx, &self.dog.walk_2, param)?;
+                    graphics::draw(ctx, &self.dog.walk_2, param)?;
                     self.dog.walk_2.clear(); 
                 }
             }
         }
 
-        let dest_point = graphics::Point2::new(650.0,20.0);
+        let _dest_point = ggez::mint::Point2::from_slice(&[650.0,20.0]);
+        let dest_point = DrawParam::default().dest(_dest_point);
         let s = format!("Points: {}", self.points);
-        let text = graphics::Text::new(ctx, s.as_str(), &self.font)?;
-        graphics::draw(ctx, &text, dest_point, 0.0)?;
+        //let text = graphics::Text::new(ctx, s.as_str(), &self.font)?;
+        let text = graphics::Text::new(s.as_str());
+        graphics::draw(ctx, &text, dest_point)?;
 
 
         if self.state == "menu" {
                 let p = graphics::DrawParam {
-                    dest: graphics::Point2::new(220.0,50.0),
-                    scale: graphics::Point2::new(6.0,6.0),
+                    dest: ggez::mint::Point2::from_slice(&[220.0,50.0]),
+                    scale: ggez::mint::Vector2::from_slice(&[6.0,6.0]),
                     rotation: 0.0,
                     ..Default::default()
                 };
                 self.twoo.add(p);
             let param = graphics::DrawParam {
-                //dest: graphics::Point2::new(self.offset/2.0,0.0),
-                dest: graphics::Point2::new(0.0,0.0),
-                scale: graphics::Point2::new(1.0,1.0),
+                //dest: ggez::mint::Point2::from_slice(self.offset/2.0,0.0),
+                dest: ggez::mint::Point2::from_slice(&[0.0,0.0]),
+                scale: ggez::mint::Vector2::from_slice(&[1.0,1.0]),
                 rotation: 0.0,
-                offset: graphics::Point2::new(0.0,0.0),
+                offset: ggez::mint::Point2::from_slice(&[0.0,0.0]),
                 ..Default::default()
             };
 
-            graphics::draw_ex(ctx, &self.twoo, param)?;
+            graphics::draw(ctx, &self.twoo, param)?;
             self.twoo.clear();
-            let dest_point = graphics::Point2::new(300.0,500.0);
+            let _dest_point = ggez::mint::Point2::from_slice(&[300.0,500.0]);
+            let dest_point = DrawParam::default().dest(_dest_point);
             let s = format!("Previous Score: {}", self.points);
-            let text = graphics::Text::new(ctx, s.as_str(), &self.font)?;
-            graphics::draw(ctx, &text, dest_point, 0.0)?;
+            let text = graphics::Text::new(s.as_str());
+            graphics::draw(ctx, &text, dest_point)?;
         }
 
 
-        graphics::present(ctx);
+        let present = graphics::present(ctx);
+        if present.is_err() {
+            println!("Present is error: {:?}", present);
+        }
+
         self.frames += 1;
         if (self.frames % 100) == 0 {
-            println!("FPS: {}", ggez::timer::get_fps(ctx));
+            println!("FPS: {}", ggez::timer::fps(ctx));
         }
         Ok(())
     }
+
+    fn mouse_button_down_event(
+        &mut self,
+        _ctx: &mut Context,
+        _button: MouseButton,
+        _x: f32,
+        _y: f32,
+    ) {
+    }
+
+    fn mouse_button_up_event(
+        &mut self,
+        _ctx: &mut Context,
+        _button: MouseButton,
+        _x: f32,
+        _y: f32,
+    ) {
+    }
+
+    fn mouse_motion_event(&mut self, _ctx: &mut Context, _x: f32, _y: f32, _dx: f32, _dy: f32) {}
+
+    fn mouse_wheel_event(&mut self, _ctx: &mut Context, _x: f32, _y: f32) {}
+
+    fn text_input_event(&mut self, _ctx: &mut Context, _character: char) {}
+
+    fn gamepad_button_down_event(&mut self, _ctx: &mut Context, _btn: Button, _id: GamepadId) {}
+
+    fn gamepad_button_up_event(&mut self, _ctx: &mut Context, _btn: Button, _id: GamepadId) {}
+
+    fn gamepad_axis_event(&mut self, _ctx: &mut Context, _axis: Axis, _value: f32, _id: GamepadId) {
+    }
+
+    fn focus_event(&mut self, _ctx: &mut Context, _gained: bool) {}
+
+    fn quit_event(&mut self, _ctx: &mut Context) -> bool {
+        false
+    }
+
+    fn resize_event(&mut self, _ctx: &mut Context, _width: f32, _height: f32) {}
 }
 
 // Now our main function, which does three things:
@@ -394,9 +438,8 @@ impl event::EventHandler for MainState {
 // do the work of creating our MainState and running our game,
 // * then just call `game.run()` which runs the `Game` mainloop.
 pub fn main() {
-    let c = conf::Conf::new();
-    let ctx = &mut Context::load_from_conf("helloworld", "ggez", c).unwrap();
-    graphics::set_default_filter(ctx, graphics::FilterMode::Nearest);
+    let (mut ctx, mut events_loop) = ContextBuilder::new("thewizzerofoz", "maccam912").build().unwrap();
+    graphics::set_default_filter(&mut ctx, graphics::FilterMode::Nearest);
 
     // We add the CARGO_MANIFEST_DIR/resources do the filesystems paths so 
     // we we look in the cargo project for files.
@@ -404,12 +447,12 @@ pub fn main() {
         let mut path = path::PathBuf::from(manifest_dir);
         path.push("assets");
         println!("{:?}", path);
-        ctx.filesystem.mount(&path, true);
+        ggez::filesystem::mount(&mut ctx, &path, true);
     }
 
 
-    let state = &mut MainState::new(ctx).unwrap();
-    if let Err(e) = event::run(ctx, state) {
+    let state = &mut MainState::new(&mut ctx).unwrap();
+    if let Err(e) = event::run(&mut ctx, &mut events_loop, state) {
         println!("Error encountered: {}", e);
     } else {
         println!("Game exited cleanly.");
